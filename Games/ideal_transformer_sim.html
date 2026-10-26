@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ideální transformátor - Simulátor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --panel-bg: #1e293b;
+            --primary-coil: #06b6d4; /* Cyan */
+            --secondary-coil: #f97316; /* Orange */
+            --core-color: #475569;
+            --text-main: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(249, 115, 22, 0.08) 0%, transparent 50%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* Glassmorphism panel */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Range Slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            height: 6px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        #u1::-webkit-slider-thumb { background: var(--primary-coil); box-shadow: 0 0 12px var(--primary-coil); }
+        #n1::-webkit-slider-thumb { background: var(--primary-coil); box-shadow: 0 0 12px var(--primary-coil); }
+        #n2::-webkit-slider-thumb { background: var(--secondary-coil); box-shadow: 0 0 12px var(--secondary-coil); }
+
+        /* Glowing text effects */
+        .glow-primary {
+            color: var(--primary-coil);
+            text-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
+        }
+        
+        .glow-secondary {
+            color: var(--secondary-coil);
+            text-shadow: 0 0 15px rgba(249, 115, 22, 0.5);
+        }
+
+        /* Core drawing */
+        .transformer-core {
+            fill: transparent;
+            stroke: var(--core-color);
+            stroke-width: 40;
+            stroke-linejoin: round;
+        }
+
+        .coil {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
+
+        .coil-primary {
+            stroke: var(--primary-coil);
+            filter: drop-shadow(0 0 8px var(--primary-coil));
+        }
+
+        .coil-secondary {
+            stroke: var(--secondary-coil);
+            filter: drop-shadow(0 0 8px var(--secondary-coil));
+        }
+
+        /* Skrytí šipek v číselném vstupu pro čistší vzhled */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-5xl w-full glass-panel p-6 md:p-10 flex flex-col gap-8">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Simulátor Ideálního Transformátoru</h1>
+            <p class="text-slate-400">Přímá úměra mezi počtem závitů a napětím</p>
+        </div>
+
+        <!-- Schematic Area -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+            
+            <!-- Primary Side Info -->
+            <div class="flex flex-col items-center md:items-start text-center md:text-left w-full md:w-1/4">
+                <div class="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-1">Primární cívka</div>
+                <div class="text-4xl font-bold glow-primary mb-1">
+                    <span id="disp-u1">230</span> V
+                </div>
+                <div class="text-xl text-slate-300">
+                    <span id="disp-n1">1200</span> závitů
+                </div>
+            </div>
+
+            <!-- SVG Graphic -->
+            <div class="w-full md:w-2/4 flex justify-center relative">
+                <svg width="300" height="240" viewBox="0 0 300 240" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Iron Core -->
+                    <rect x="50" y="40" width="200" height="160" rx="15" class="transformer-core" />
+                    <rect x="90" y="80" width="120" height="80" rx="5" fill="#0b1120" /> <!-- Inner cutout -->
+                    
+                    <!-- Primary Coil (Left) - dynamic rendering would be complex, using static visual representation -->
+                    <g class="coil coil-primary" id="svg-primary-coil">
+                        <!-- Lines drawn via JS -->
+                    </g>
+                    
+                    <!-- Secondary Coil (Right) -->
+                    <g class="coil coil-secondary" id="svg-secondary-coil">
+                        <!-- Lines drawn via JS -->
+                    </g>
+                </svg>
+
+                <!-- Action text in center -->
+                <div id="status-badge" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/80 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-slate-200 border border-slate-600 backdrop-blur">
+                    Transformace nahoru
+                </div>
+            </div>
+
+            <!-- Secondary Side Info -->
+            <div class="flex flex-col items-center md:items-end text-center md:text-right w-full md:w-1/4">
+                <div class="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-1">Sekundární cívka</div>
+                <div class="text-5xl font-bold glow-secondary mb-1">
+                    <span id="disp-u2">11.5</span> V
+                </div>
+                <div class="text-xl text-slate-300">
+                    <span id="disp-n2">60</span> závitů
+                </div>
+            </div>
+        </div>
+
+        <!-- Formula Display -->
+        <div class="bg-slate-900/60 rounded-xl p-6 text-center border border-slate-700/50">
+            <div class="text-slate-400 mb-2">Výpočet podle rovnice: <span class="font-mono bg-slate-800 px-2 py-1 rounded text-sm">U₂ / U₁ = N₂ / N₁</span> &rArr; <span class="font-mono bg-slate-800 px-2 py-1 rounded text-sm">U₂ = U₁ × (N₂ / N₁)</span></div>
+            <div class="text-2xl md:text-3xl font-light font-mono text-slate-200 flex items-center justify-center flex-wrap gap-2" id="formula-display">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-2">
+            
+            <!-- U1 Control -->
+            <div class="flex flex-col gap-2">
+                <label for="u1" class="flex justify-between items-center text-sm font-semibold text-slate-300">
+                    <span>Vstupní napětí (U₁)</span>
+                    <span class="flex items-center text-cyan-400">
+                        <input type="number" id="val-u1" class="bg-slate-800/50 border border-cyan-500/30 rounded px-2 py-0.5 w-16 text-right outline-none focus:border-cyan-400 text-cyan-400 font-mono transition-colors" value="230" min="0">
+                        <span class="ml-1">V</span>
+                    </span>
+                </label>
+                <input type="range" id="u1" min="0" max="400" step="1" value="230">
+            </div>
+
+            <!-- N1 Control -->
+            <div class="flex flex-col gap-2">
+                <label for="n1" class="flex justify-between items-center text-sm font-semibold text-slate-300">
+                    <span>Závity primární (N₁)</span>
+                    <span class="text-cyan-400">
+                        <input type="number" id="val-n1" class="bg-slate-800/50 border border-cyan-500/30 rounded px-2 py-0.5 w-20 text-right outline-none focus:border-cyan-400 text-cyan-400 font-mono transition-colors" value="1200" min="1">
+                    </span>
+                </label>
+                <input type="range" id="n1" min="10" max="2000" step="10" value="1200">
+            </div>
+
+            <!-- N2 Control -->
+            <div class="flex flex-col gap-2">
+                <label for="n2" class="flex justify-between items-center text-sm font-semibold text-slate-300">
+                    <span>Závity sekundární (N₂)</span>
+                    <span class="text-orange-400">
+                        <input type="number" id="val-n2" class="bg-slate-800/50 border border-orange-500/30 rounded px-2 py-0.5 w-20 text-right outline-none focus:border-orange-400 text-orange-400 font-mono transition-colors" value="60" min="1">
+                    </span>
+                </label>
+                <input type="range" id="n2" min="10" max="2000" step="10" value="60">
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const elU1Input = document.getElementById('u1');
+        const elN1Input = document.getElementById('n1');
+        const elN2Input = document.getElementById('n2');
+
+        const elDispU1 = document.getElementById('disp-u1');
+        const elDispN1 = document.getElementById('disp-n1');
+        const elDispU2 = document.getElementById('disp-u2');
+        const elDispN2 = document.getElementById('disp-n2');
+
+        const elValU1 = document.getElementById('val-u1');
+        const elValN1 = document.getElementById('val-n1');
+        const elValN2 = document.getElementById('val-n2');
+
+        const elFormulaDisplay = document.getElementById('formula-display');
+        const elStatusBadge = document.getElementById('status-badge');
+
+        const svgPrimary = document.getElementById('svg-primary-coil');
+        const svgSecondary = document.getElementById('svg-secondary-coil');
+
+        // Draw coils on SVG based on density
+        function drawCoils(density1, density2) {
+            // Mapping density to a visually pleasing number of lines (3 to 12)
+            const mapDensity = (val, max) => Math.max(3, Math.min(12, Math.round((val / 2000) * 12) + 2));
+            
+            const lines1 = mapDensity(density1);
+            const lines2 = mapDensity(density2);
+
+            let html1 = '';
+            let html2 = '';
+
+            const startY = 60;
+            const endY = 180;
+            
+            // Primary (Left side of core - x around 50)
+            const step1 = (endY - startY) / (lines1 - 1 || 1);
+            for(let i=0; i<lines1; i++) {
+                const y = startY + (i * step1);
+                html1 += `<path d="M 30 ${y} L 70 ${y}" />`;
+            }
+
+            // Secondary (Right side of core - x around 250)
+            const step2 = (endY - startY) / (lines2 - 1 || 1);
+            for(let i=0; i<lines2; i++) {
+                const y = startY + (i * step2);
+                html2 += `<path d="M 230 ${y} L 270 ${y}" />`;
+            }
+
+            svgPrimary.innerHTML = html1;
+            svgSecondary.innerHTML = html2;
+        }
+
+        // Main update logic
+        // Main update logic
+        function updateCalculator(source = 'slider') {
+            let u1, n1, n2;
+
+            if (source === 'number') {
+                // Načtení hodnot z textových polí
+                u1 = parseFloat(elValU1.value) || 0;
+                n1 = parseInt(elValN1.value) || 1; // Ochrana proti dělení nulou
+                n2 = parseInt(elValN2.value) || 0;
+
+                // Synchronizace posuvníků podle textových polí
+                elU1Input.value = u1;
+                elN1Input.value = n1;
+                elN2Input.value = n2;
+            } else {
+                // Načtení hodnot z posuvníků
+                u1 = parseFloat(elU1Input.value);
+                n1 = parseInt(elN1Input.value);
+                n2 = parseInt(elN2Input.value);
+
+                // Synchronizace textových polí podle posuvníků
+                elValU1.value = u1;
+                elValN1.value = n1;
+                elValN2.value = n2;
+            }
+
+            // Calculate Ideal Transformer Equation
+            const u2 = u1 * (n2 / n1);
+            
+            // Format numbers nicely (up to 1 decimal place, strip trailing zero)
+            const formatNumber = (num) => parseFloat(num.toFixed(1)).toString();
+            const u2Formatted = formatNumber(u2);
+
+            // Update Values in Text
+            elDispU1.innerText = u1;
+            elDispN1.innerText = n1;
+            elDispU2.innerText = u2Formatted;
+            elDispN2.innerText = n2;
+
+            // Update Formula
+            elFormulaDisplay.innerHTML = `
+                <span>U₂ = <span class="text-cyan-400">${u1}</span></span>
+                <span class="mx-2">×</span>
+                <span>(<span class="text-orange-400">${n2}</span> / <span class="text-cyan-400">${n1}</span>)</span>
+                <span class="mx-2">=</span>
+                <strong class="text-orange-400 glow-secondary">${u2Formatted} V</strong>
+            `;
+
+            // Update Status Badge
+            if (n2 > n1) {
+                elStatusBadge.innerText = 'Nahoru ⬆';
+                elStatusBadge.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-orange-400 border border-orange-500/30 backdrop-blur shadow-[0_0_10px_rgba(249,115,22,0.2)]';
+            } else if (n1 > n2) {
+                elStatusBadge.innerText = 'Dolů ⬇';
+                elStatusBadge.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-cyan-400 border border-cyan-500/30 backdrop-blur shadow-[0_0_10px_rgba(6,182,212,0.2)]';
+            } else {
+                elStatusBadge.innerText = 'Bez změny =';
+                elStatusBadge.className = 'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800/90 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-slate-300 border border-slate-500/30 backdrop-blur';
+            }
+
+            // Update graphic
+            drawCoils(n1, n2);
+        }
+
+        // Attach event listeners for sliders
+        elU1Input.addEventListener('input', () => updateCalculator('slider'));
+        elN1Input.addEventListener('input', () => updateCalculator('slider'));
+        elN2Input.addEventListener('input', () => updateCalculator('slider'));
+
+        // Attach event listeners for text inputs
+        elValU1.addEventListener('input', () => updateCalculator('number'));
+        elValN1.addEventListener('input', () => updateCalculator('number'));
+        elValN2.addEventListener('input', () => updateCalculator('number'));
+
+        // Initialize on load
+        updateCalculator('slider');
+
+    </script>
+</body>
+</html>
