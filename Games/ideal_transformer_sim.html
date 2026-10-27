@@ -318,7 +318,7 @@
             const u2 = u1 * (n2 / n1);
             
             // Format numbers nicely (up to 1 decimal place, strip trailing zero)
-            const formatNumber = (num) => parseFloat(num.toFixed(1)).toString();
+            const formatNumber = (num) => parseFloat(num.toFixed(2)).toString();
             const u2Formatted = formatNumber(u2);
 
             // Update Values in Text
